@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The AI Architecture Atlas — 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a141f;
+    --bg-panel:#0f2033;
+    --bg-panel-2:#132a41;
+    --line:rgba(148,196,224,0.16);
+    --line-strong:rgba(148,196,224,0.32);
+    --cyan:#6fe3d4;
+    --amber:#f3a65a;
+    --pink:#e8748a;
+    --text:#e9f2f7;
+    --mute:#8ea6ba;
+    --mono:'IBM Plex Mono', monospace;
+    --sans:'IBM Plex Sans', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.6;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:48px 48px;
+    background-attachment:fixed;
+    overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+  a{color:var(--cyan); text-decoration:none;}
+  ::selection{background:var(--cyan); color:#06141c;}
+
+  /* ---------- utility ---------- */
+  .wrap{max-width:1180px; margin:0 auto; padding:0 32px;}
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--cyan); display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  }
+  .eyebrow::before{content:''; width:22px; height:1px; background:var(--cyan);}
+  h1,h2,h3{font-family:var(--mono); font-weight:600; letter-spacing:-0.01em;}
+  .section-title{font-size:clamp(28px,4vw,42px); margin-bottom:14px; color:var(--text);}
+  .section-sub{color:var(--mute); max-width:640px; font-size:16px; margin-bottom:44px;}
+  .tag{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase;
+    padding:3px 9px; border:1px solid var(--line-strong); border-radius:3px; color:var(--mute);
+  }
+
+  /* ---------- nav ---------- */
+  header.topnav{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    backdrop-filter:blur(10px);
+    background:rgba(10,20,31,0.82);
+    border-bottom:1px solid var(--line);
+  }
+  .topnav-inner{
+    max-width:1180px; margin:0 auto; padding:14px 32px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .logo{font-family:var(--mono); font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px;}
+  .logo .dot{width:8px; height:8px; background:var(--cyan); border-radius:50%; box-shadow:0 0 8px var(--cyan);}
+  nav.links{display:flex; gap:26px;}
+  nav.links a{
+    font-family:var(--mono); font-size:12px; color:var(--mute); letter-spacing:0.03em;
+    text-transform:uppercase; transition:color 0.2s; position:relative; padding-bottom:4px;
+  }
+  nav.links a::after{content:''; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--cyan); transition:width 0.25s;}
+  nav.links a.active, nav.links a:hover{color:var(--text);}
+  nav.links a.active::after{width:100%;}
+  .navtoggle{display:none; flex-direction:column; gap:4px; background:none; border:none; cursor:pointer;}
+  .navtoggle span{width:22px; height:2px; background:var(--text);}
+  @media(max-width:900px){
+    nav.links{display:none;}
+    .navtoggle{display:flex;}
+  }
+
+  /* ---------- stack rail (signature element) ---------- */
+  .rail{
+    position:fixed; left:28px; top:50%; transform:translateY(-50%); z-index:50;
+    display:flex; flex-direction:column-reverse; gap:2px;
+  }
+  .rail-item{
+    width:34px; height:44px; border:1px solid var(--line-strong);
+    background:var(--bg-panel); display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; color:var(--mute); cursor:pointer;
+    transition:all 0.35s ease; position:relative; clip-path:polygon(0 0,100% 0,90% 100%,10% 100%);
+  }
+  .rail-item span{writing-mode:vertical-rl; transform:rotate(180deg);}
+  .rail-item.active{
+    background:var(--cyan); color:#06141c; border-color:var(--cyan);
+    box-shadow:0 0 18px rgba(111,227,212,0.5); width:40px;
+  }
+  .rail-connector{
+    position:absolute; left:45px; width:1px; background:var(--line-strong);
+    transition:background 0.35s;
+  }
+  @media(max-width:900px){ .rail{display:none;} }
+
+  /* top progress bar for mobile */
+  .mobile-progress{position:fixed; top:0; left:0; height:2px; background:var(--cyan); z-index:101; width:0%; transition:width .1s;}
+
+  /* ---------- hero ---------- */
+  .hero{
+    min-height:100vh; display:flex; flex-direction:column; justify-content:center;
+    padding-top:100px; position:relative; overflow:hidden;
+  }
+  .hero-grid-fade{
+    position:absolute; inset:0;
+    background:radial-gradient(ellipse at 30% 20%, rgba(111,227,212,0.10), transparent 55%);
+    pointer-events:none;
+  }
+  .hero h1{
+    font-size:clamp(40px,7vw,84px); line-height:1.02; letter-spacing:-0.02em;
+    max-width:900px;
+  }
+  .hero h1 .hl{color:var(--cyan);}
+  .hero p.lede{
+    font-family:var(--sans); font-size:18px; color:var(--mute); max-width:560px; margin-top:24px;
+  }
+  .hero-meta{
+    display:flex; gap:34px; margin-top:56px; font-family:var(--mono); font-size:12px; color:var(--mute); flex-wrap:wrap;
+  }
+  .hero-meta b{color:var(--text); display:block; font-size:20px; font-family:var(--mono);}
+  .scroll-cue{
+    position:absolute; bottom:36px; left:32px; font-family:var(--mono); font-size:11px; color:var(--mute);
+    display:flex; align-items:center; gap:10px; letter-spacing:0.08em; text-transform:uppercase;
+  }
+  .scroll-cue .line{width:1px; height:34px; background:var(--line-strong); position:relative; overflow:hidden;}
+  .scroll-cue .line::after{content:''; position:absolute; top:-100%; left:0; width:100%; height:100%; background:var(--cyan); animation:drip 1.8s infinite;}
+  @keyframes drip{ to{top:100%;} }
+
+  /* ---------- layer sections ---------- */
+  .layer{
+    padding:120px 0 80px; border-top:1px solid var(--line); position:relative;
+  }
+  .layer-head{display:flex; align-items:baseline; gap:18px; margin-bottom:8px; flex-wrap:wrap;}
+  .layer-num{font-family:var(--mono); font-size:14px; color:var(--amber);}
+
+  .diagram{
+    background:var(--bg-panel); border:1px solid var(--line); border-radius:6px;
+    padding:36px 28px; margin:34px 0; position:relative;
+    background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:22px 22px;
+  }
+  .flow{display:flex; align-items:center; justify-content:center; gap:0; flex-wrap:wrap; row-gap:22px;}
+  .flow .node{
+    font-family:var(--mono); font-size:13px; padding:12px 18px; border:1px solid var(--line-strong);
+    background:var(--bg-panel-2); border-radius:4px; text-align:center; min-width:120px; color:var(--text);
+  }
+  .flow .node.hi{border-color:var(--cyan); color:var(--cyan); box-shadow:0 0 14px rgba(111,227,212,0.18);}
+  .flow .arrow{font-family:var(--mono); color:var(--mute); padding:0 14px; font-size:15px;}
+  .flow-vert{display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .flow-vert .arrow{padding:0;}
+
+  .branch{display:flex; justify-content:center; gap:36px; flex-wrap:wrap; margin-top:8px;}
+  .branch .node{min-width:130px;}
+
+  .problem-list, .char-list{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-top:22px;
+  }
+  .pill{
+    font-family:var(--mono); font-size:12.5px; padding:11px 14px; border:1px solid var(--line);
+    border-radius:4px; background:var(--bg-panel); display:flex; gap:9px; align-items:flex-start;
+  }
+  .pill.bad::before{content:'✕'; color:var(--pink); flex-shrink:0;}
+  .pill.good::before{content:'✓'; color:var(--cyan); flex-shrink:0;}
+
+  .two-col{display:grid; grid-template-columns:1.1fr 0.9fr; gap:48px; align-items:start;}
+  @media(max-width:800px){ .two-col{grid-template-columns:1fr;} }
+
+  .example-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;}
+  .example-row span{
+    font-family:var(--mono); font-size:12px; padding:5px 11px; border:1px solid var(--line);
+    border-radius:20px; color:var(--mute);
+  }
+
+  /* card grids for "types of" content */
+  .card-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; margin-top:28px;
+  }
+  .card{
+    border:1px solid var(--line); background:var(--bg-panel); border-radius:6px; padding:18px;
+    cursor:pointer; transition:border-color 0.25s, transform 0.25s; position:relative;
+  }
+  .card:hover{border-color:var(--line-strong); transform:translateY(-2px);}
+  .card.open{border-color:var(--cyan);}
+  .card .card-top{display:flex; justify-content:space-between; align-items:center;}
+  .card h4{font-family:var(--mono); font-size:14px; color:var(--text); font-weight:600;}
+  .card .plus{font-family:var(--mono); color:var(--mute); transition:transform 0.25s;}
+  .card.open .plus{transform:rotate(45deg); color:var(--cyan);}
+  .card .body{
+    max-height:0; overflow:hidden; transition:max-height 0.3s ease, margin-top 0.3s ease;
+    font-size:13.5px; color:var(--mute);
+  }
+  .card.open .body{max-height:200px; margin-top:12px;}
+
+  .subgroup-label{
+    font-family:var(--mono); font-size:12px; color:var(--amber); text-transform:uppercase;
+    letter-spacing:0.08em; margin:30px 0 4px;
+  }
+
+  /* comparison table */
+  .table-wrap{overflow-x:auto; margin-top:30px; border:1px solid var(--line); border-radius:6px;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:680px;}
+  th,td{padding:13px 16px; text-align:left; border-bottom:1px solid var(--line);}
+  th{font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--amber); background:var(--bg-panel);}
+  td{color:var(--mute); font-family:var(--sans);}
+  tr:hover td{background:rgba(111,227,212,0.04); color:var(--text);}
+  td.center, th.center{text-align:center;}
+  .y{color:var(--cyan);} .n{color:var(--pink);}
+
+  /* memory / tools */
+  .chip-cloud{display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;}
+  .chip-cloud .chip{
+    font-family:var(--mono); font-size:12.5px; padding:8px 14px; border:1px solid var(--line);
+    border-radius:4px; background:var(--bg-panel-2); color:var(--text);
+  }
+
+  .mcp-callout{
+    margin-top:36px; border:1px solid var(--cyan); border-radius:6px; padding:26px 28px;
+    background:linear-gradient(180deg, rgba(111,227,212,0.06), transparent);
+  }
+  .mcp-callout h4{color:var(--cyan); font-size:15px; margin-bottom:8px;}
+  .mcp-callout p{color:var(--mute); font-size:14px; max-width:640px;}
+
+  /* roadmap timeline */
+  .roadmap{position:relative; margin-top:50px; padding-left:28px;}
+  .roadmap::before{content:''; position:absolute; left:5px; top:6px; bottom:6px; width:1px; background:var(--line-strong);}
+  .rstep{position:relative; padding-bottom:38px;}
+  .rstep::before{
+    content:''; position:absolute; left:-28px; top:4px; width:11px; height:11px; border-radius:50%;
+    background:var(--bg); border:2px solid var(--cyan);
+  }
+  .rstep h4{font-family:var(--mono); font-size:15px; margin-bottom:6px; color:var(--text);}
+  .rstep p{color:var(--mute); font-size:13.5px; max-width:620px;}
+
+  footer{
+    border-top:1px solid var(--line); padding:44px 0 60px; margin-top:60px;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px;
+  }
+  footer .f-left{font-family:var(--mono); font-size:12px; color:var(--mute);}
+  footer .f-right{font-family:var(--mono); font-size:12px; color:var(--mute);}
+
+  .reveal{opacity:0; transform:translateY(18px); transition:opacity 0.6s ease, transform 0.6s ease;}
+  .reveal.in{opacity:1; transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="mobile-progress" id="mobileProgress"></div>
+
+<header class="topnav">
+  <div class="topnav-inner">
+    <div class="logo"><span class="dot"></span> AI ARCHITECTURE ATLAS</div>
+    <nav class="links" id="navLinks">
+      <a href="#llm" data-target="llm">01 LLM</a>
+      <a href="#rag" data-target="rag">02 RAG</a>
+      <a href="#agent" data-target="agent">03 Agent</a>
+      <a href="#agentic" data-target="agentic">04 Agentic AI</a>
+      <a href="#ragagent" data-target="ragagent">05 RAG Agent</a>
+      <a href="#matrix">Matrix</a>
+      <a href="#roadmap">Roadmap</a>
+    </nav>
+    <button class="navtoggle" id="navToggle" aria-label="menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<!-- signature stack rail -->
+<div class="rail" id="rail">
+  <div class="rail-item" data-layer="llm"><span>LLM</span></div>
+  <div class="rail-item" data-layer="rag"><span>RAG</span></div>
+  <div class="rail-item" data-layer="agent"><span>AGENT</span></div>
+  <div class="rail-item" data-layer="agentic"><span>AGENTIC</span></div>
+  <div class="rail-item" data-layer="ragagent"><span>RAG-AGT</span></div>
+</div>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="hero-grid-fade"></div>
+  <div class="wrap">
+    <div class="eyebrow">Field guide — 2026 edition</div>
+    <h1>Five layers.<br>One <span class="hl">stack</span>.<br>Every AI system you'll build.</h1>
+    <p class="lede">From a plain language model to autonomous multi-agent systems that retrieve, reason, and act — each architecture is built directly on top of the one before it. This is the map.</p>
+    <div class="hero-meta">
+      <div><b>05</b>Core architectures</div>
+      <div><b>30+</b>Named sub-types</div>
+      <div><b>01</b>Way they connect</div>
+    </div>
+  </div>
+  <div class="scroll-cue"><div class="line"></div>Scroll to build the stack</div>
+</section>
+
+<!-- ============ LAYER 1: LLM ============ -->
+<section class="layer reveal" id="llm">
+  <div class="wrap">
+    <div class="layer-head">
+      <span class="layer-num">LAYER 01 / FOUNDATION</span>
+    </div>
+    <h2 class="section-title">The Large Language Model</h2>
+    <p class="section-sub">The base of the whole stack. A model that answers purely from what it learned during training — nothing external, nothing live.</p>
+
+    <div class="diagram">
+      <div class="flow">
+        <div class="node">User</div><div class="arrow">→</div>
+        <div class="node">Prompt</div><div class="arrow">→</div>
+        <div class="node hi">LLM</div><div class="arrow">→</div>
+        <div class="node">Answer</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="subgroup-label">Where it breaks down</div>
+        <div class="problem-list">
+          <div class="pill bad">Hallucinates confidently</div>
+          <div class="pill bad">Blind to private documents</div>
+          <div class="pill bad">Frozen at training cutoff</div>
+        </div>
+        <div class="example-row">
+          <span>Base ChatGPT</span><span>Claude (no tools)</span><span>Gemini (no tools)</span>
+        </div>
+      </div>
+      <div>
+        <div class="subgroup-label">By architecture</div>
+        <div class="card-grid" id="llmArchCards"></div>
+      </div>
+    </div>
+
+    <div class="subgroup-label">By modality</div>
+    <div class="card-grid" id="llmModalityCards"></div>
+
+    <div class="subgroup-label">By deployment</div>
+    <div class="chip-cloud">
+      <div class="chip">Closed-source</div><div class="chip">Open-source</div>
+      <div class="chip">Small Language Models (SLM)</div><div class="chip">Edge LLMs</div>
+      <div class="chip">Domain-specific LLMs</div><div class="chip">Reasoning LLMs</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LAYER 2: RAG ============ -->
+<section class="layer reveal" id="rag">
+  <div class="wrap">
+    <div class="layer-head"><span class="layer-num">LAYER 02 / KNOWLEDGE</span></div>
+    <h2 class="section-title">Retrieval-Augmented Generation</h2>
+    <p class="section-sub">Same LLM, now handed external knowledge before it answers. Solves the "doesn't know my documents" problem — one retrieval, one generation.</p>
+
+    <div class="diagram">
+      <div class="flow">
+        <div class="node">Question</div><div class="arrow">→</div>
+        <div class="node">Retriever</div><div class="arrow">→</div>
+        <div class="node">Vector DB</div><div class="arrow">→</div>
+        <div class="node hi">LLM</div><div class="arrow">→</div>
+        <div class="node">Answer</div>
+      </div>
+    </div>
+
+    <div class="subgroup-label">Named variants</div>
+    <div class="card-grid" id="ragCards"></div>
+  </div>
+</section>
+
+<!-- ============ LAYER 3: AI AGENT ============ -->
+<section class="layer reveal" id="agent">
+  <div class="wrap">
+    <div class="layer-head"><span class="layer-num">LAYER 03 / ACTION</span></div>
+    <h2 class="section-title">The AI Agent</h2>
+    <p class="section-sub">The model stops just answering and starts doing — planning steps, calling tools, and executing toward a goal.</p>
+
+    <div class="diagram">
+      <div class="flow-vert">
+        <div class="node hi">Understand request</div><div class="arrow">↓</div>
+        <div class="node">Search flights</div><div class="arrow">↓</div>
+        <div class="node">Compare prices</div><div class="arrow">↓</div>
+        <div class="node">Choose best option</div><div class="arrow">↓</div>
+        <div class="node">Book ticket</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="subgroup-label">Core capabilities</div>
+        <div class="problem-list">
+          <div class="pill good">Planning &amp; reasoning</div>
+          <div class="pill good">Tool calling</div>
+          <div class="pill good">Multi-step execution</div>
+          <div class="pill good">Memory across steps</div>
+        </div>
+      </div>
+      <div>
+        <div class="subgroup-label">Tools it reaches for</div>
+        <div class="chip-cloud">
+          <div class="chip">Search API</div><div class="chip">SQL</div><div class="chip">Python</div>
+          <div class="chip">Browser</div><div class="chip">Email</div><div class="chip">Calendar</div><div class="chip">File system</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subgroup-label">Named types</div>
+    <div class="card-grid" id="agentCards"></div>
+  </div>
+</section>
+
+<!-- ============ LAYER 4: AGENTIC AI ============ -->
+<section class="layer reveal" id="agentic">
+  <div class="wrap">
+    <div class="layer-head"><span class="layer-num">LAYER 04 / COLLABORATION</span></div>
+    <h2 class="section-title">Agentic AI — Multi-Agent Systems</h2>
+    <p class="section-sub">Instead of one agent doing everything, specialised agents collaborate under a coordination pattern.</p>
+
+    <div class="diagram">
+      <div class="flow-vert" style="margin-bottom:10px;">
+        <div class="node hi">Orchestrator Agent</div><div class="arrow">↓</div>
+      </div>
+      <div class="branch">
+        <div class="node">Research Agent</div>
+        <div class="node">Coding Agent</div>
+        <div class="node">Review Agent</div>
+      </div>
+      <div class="flow-vert" style="margin-top:10px;">
+        <div class="arrow">↓</div><div class="node">Final Response</div>
+      </div>
+    </div>
+
+    <div class="subgroup-label">Coordination patterns</div>
+    <div class="card-grid" id="agenticCards"></div>
+  </div>
+</section>
+
+<!-- ============ LAYER 5: RAG AGENT ============ -->
+<section class="layer reveal" id="ragagent">
+  <div class="wrap">
+    <div class="layer-head"><span class="layer-num">LAYER 05 / APEX</span></div>
+    <h2 class="section-title">RAG Agent — Agentic RAG</h2>
+    <p class="section-sub">The two branches merge. The agent decides when, what, and how to retrieve — during its own reasoning, as many times as the task needs.</p>
+
+    <div class="diagram">
+      <div class="flow-vert">
+        <div class="node hi">Planner Agent</div><div class="arrow">↓</div>
+        <div class="node">Retrieve sales report</div><div class="arrow">↓</div>
+        <div class="node">Retrieve last year's report</div><div class="arrow">↓</div>
+        <div class="node">Analyze differences</div><div class="arrow">↓</div>
+        <div class="node">Generate charts</div><div class="arrow">↓</div>
+        <div class="node">Create PowerPoint</div><div class="arrow">↓</div>
+        <div class="node">Send email</div>
+      </div>
+    </div>
+    <p style="color:var(--mute); font-size:14px; margin-top:20px;">This — often called <b style="color:var(--text);">Agentic RAG</b> — is currently the dominant pattern for enterprise AI: RAG supplies reliable knowledge, agents supply reasoning, planning, and action.</p>
+  </div>
+</section>
+
+<!-- ============ MEMORY + TOOLS ============ -->
+<section class="layer reveal" id="memory">
+  <div class="wrap">
+    <div class="layer-head"><span class="layer-num">CROSS-CUTTING</span></div>
+    <h2 class="section-title">Memory &amp; Tools</h2>
+    <p class="section-sub">These aren't a layer of their own — every architecture above draws on them.</p>
+
+    <div class="two-col">
+      <div>
+        <div class="subgroup-label">Types of agent memory</div>
+        <div class="chip-cloud">
+          <div class="chip">Short-term — conversation history</div>
+          <div class="chip">Long-term — vector database</div>
+          <div class="chip">Episodic — past interactions</div>
+          <div class="chip">Semantic — facts</div>
+          <div class="chip">Procedural — learned skills / routines</div>
+          <div class="chip">Working — current task</div>
+        </div>
+      </div>
+      <div>
+        <div class="subgroup-label">Tools agents call</div>
+        <div class="chip-cloud">
+          <div class="chip">Search</div><div class="chip">Browser</div><div class="chip">SQL</div><div class="chip">Python</div>
+          <div class="chip">API</div><div class="chip">Email</div><div class="chip">Calendar</div><div class="chip">File</div>
+          <div class="chip">Git</div><div class="chip">Shell</div><div class="chip">Cloud</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mcp-callout">
+      <h4>▲ Model Context Protocol (MCP)</h4>
+      <p>The emerging standard for wiring an LLM or agent up to external tools and data sources through one uniform interface, instead of a bespoke integration per tool. Most current agent frameworks are converging on it.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MATRIX ============ -->
+<section class="layer reveal" id="matrix">
+  <div class="wrap">
+    <div class="layer-head"><span class="layer-num">REFERENCE</span></div>
+    <h2 class="section-title">When to use what</h2>
+    <p class="section-sub">The same five architectures, compared side by side.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Architecture</th><th class="center">Answers questions</th><th class="center">External knowledge</th>
+            <th class="center">Uses tools</th><th class="center">Multi-step reasoning</th><th class="center">Multiple agents</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>LLM</td><td class="center y">✓</td><td class="center n">✕</td><td class="center n">✕</td><td class="center">Limited</td><td class="center n">✕</td></tr>
+          <tr><td>RAG</td><td class="center y">✓</td><td class="center y">✓</td><td class="center n">✕</td><td class="center">Limited</td><td class="center n">✕</td></tr>
+          <tr><td>AI Agent</td><td class="center y">✓</td><td class="center">Optional</td><td class="center y">✓</td><td class="center y">✓</td><td class="center n">✕</td></tr>
+          <tr><td>Agentic AI</td><td class="center y">✓</td><td class="center">Optional</td><td class="center y">✓</td><td class="center y">✓</td><td class="center y">✓</td></tr>
+          <tr><td>RAG Agent</td><td class="center y">✓</td><td class="center y">✓</td><td class="center y">✓</td><td class="center y">✓</td><td class="center">Single or multi</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ROADMAP ============ -->
+<section class="layer reveal" id="roadmap">
+  <div class="wrap">
+    <div class="layer-head"><span class="layer-num">LEARNING PATH</span></div>
+    <h2 class="section-title">What to learn in 2026</h2>
+    <p class="section-sub">The progression mirrors the stack itself: ground a capable LLM, add RAG, enable agents to act, then orchestrate them.</p>
+
+    <div class="roadmap">
+      <div class="rstep">
+        <h4>01 · LLMs</h4>
+        <p>Transformer architecture, tokenization, embeddings, prompting, fine-tuning, inference, MoE vs dense vs SSM.</p>
+      </div>
+      <div class="rstep">
+        <h4>02 · RAG</h4>
+        <p>Chunking, embeddings, vector databases, hybrid search, re-ranking, Graph RAG, CRAG, Self-RAG, Modular RAG.</p>
+      </div>
+      <div class="rstep">
+        <h4>03 · AI Agents</h4>
+        <p>Tool calling, planning, memory, workflows, function calling, structured outputs, MCP.</p>
+      </div>
+      <div class="rstep">
+        <h4>04 · Agentic AI</h4>
+        <p>Multi-agent orchestration, planning strategies, communication protocols, supervisor patterns, reflection, debate.</p>
+      </div>
+      <div class="rstep">
+        <h4>05 · Production Systems</h4>
+        <p>Evaluation &amp; LLM-as-judge, guardrails, context engineering, caching, cost optimization, observability, security.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap" style="display:flex; justify-content:space-between; width:100%; flex-wrap:wrap; gap:20px;">
+    <div class="f-left">AI ARCHITECTURE ATLAS — 2026 EDITION</div>
+    <div class="f-right">LLM → RAG + AGENT → AGENTIC AI → RAG AGENT</div>
+  </div>
+</footer>
+
+<script>
+// ---------- data for card grids ----------
+const llmArch = [
+  ["Decoder-only", "Text generation. GPT, Llama, Mistral, DeepSeek. Best for chat, coding, writing."],
+  ["Encoder-only", "Understanding. BERT, RoBERTa. Classification, sentiment, NER, search."],
+  ["Encoder-Decoder", "Transformation. T5, BART. Translation, summarization, QA."]
+];
+const llmModality = [
+  ["Text LLM", "GPT, Llama — text in, text out."],
+  ["Vision LLM", "Accepts images. GPT-4.1 Vision, Gemini."],
+  ["Audio LLM", "Accepts speech. Whisper, GPT Voice."],
+  ["Multimodal LLM", "Text, image, audio, video. GPT, Gemini."]
+];
+const ragTypes = [
+  ["Naive RAG", "Simplest pipeline: retrieve once, generate once."],
+  ["Advanced RAG", "Adds chunk optimization, hybrid search, metadata filtering, re-ranking."],
+  ["Agentic RAG", "Agent decides what, when, and whether to retrieve at all."],
+  ["Graph RAG", "Retrieves from a knowledge graph. Strong in finance, healthcare, enterprise."],
+  ["Hybrid RAG", "Combines BM25, dense retrieval, and graph search."],
+  ["Multi-modal RAG", "Retrieves images, PDFs, tables, video, audio."],
+  ["Corrective RAG (CRAG)", "Checks retrieval quality; searches again if it's poor."],
+  ["Self-RAG", "Model evaluates its own answer; retrieves more if confidence is low."],
+  ["Modular RAG", "Swappable retrieval/re-rank/generation modules, orchestrated dynamically."]
+];
+const agentTypes = [
+  ["Reactive Agent", "No memory — input straight to action."],
+  ["Tool Agent", "Calls SQL, browser, Python, APIs."],
+  ["Conversational Agent", "Maintains conversation memory. Support, personal assistants."],
+  ["Workflow Agent", "Executes a predefined workflow end to end."],
+  ["Planning Agent", "Breaks a large goal into an executable plan."],
+  ["Autonomous Agent", "Minimal human input. Research or code assistants."],
+  ["Coding Agent", "GitHub Copilot, Cursor AI."],
+  ["Research Agent", "Searches the web, reads PDFs, summarizes, cites sources."],
+  ["Data Analysis Agent", "SQL, Python, visualization."],
+  ["Browser / Computer-Use Agent", "Operates a GUI directly — clicks, types, navigates."],
+  ["Voice Agent", "Real-time speech in, speech out."]
+];
+const agenticTypes = [
+  ["Sequential", "Planner → Research → Coder → Tester, one after another."],
+  ["Hierarchical", "A manager agent delegates to sub-agents."],
+  ["Collaborative", "All agents communicate directly with each other."],
+  ["Supervisor", "A supervisor checks output quality and triggers retries."],
+  ["Debate", "Two agents argue opposing views; a judge decides."],
+  ["Reflection", "An agent reviews and improves its own output."],
+  ["Swarm Intelligence", "Hundreds of small agents cooperating."],
+  ["Blackboard", "Agents read/write to shared state; any agent can act when relevant data appears."]
+];
+
+function buildCards(containerId, items){
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map((it,i)=>`
+    <div class="card" data-i="${i}">
+      <div class="card-top"><h4>${it[0]}</h4><span class="plus">+</span></div>
+      <div class="body">${it[1]}</div>
+    </div>`).join('');
+  el.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('click', ()=> card.classList.toggle('open'));
+  });
+}
+buildCards('llmArchCards', llmArch);
+buildCards('llmModalityCards', llmModality);
+buildCards('ragCards', ragTypes);
+buildCards('agentCards', agentTypes);
+buildCards('agenticCards', agenticTypes);
+
+// ---------- scrollspy: nav + rail ----------
+const layerIds = ['llm','rag','agent','agentic','ragagent'];
+const sections = layerIds.map(id=>document.getElementById(id));
+const navAnchors = document.querySelectorAll('nav.links a[data-target]');
+const railItems = document.querySelectorAll('.rail-item');
+
+function setActive(id){
+  navAnchors.forEach(a=> a.classList.toggle('active', a.dataset.target===id));
+  railItems.forEach(r=> r.classList.toggle('active', r.dataset.layer===id));
+}
+
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      setActive(entry.target.id);
+    }
+  });
+}, {rootMargin:'-40% 0px -50% 0px', threshold:0});
+sections.forEach(s=> s && observer.observe(s));
+
+railItems.forEach(r=>{
+  r.addEventListener('click', ()=>{
+    document.getElementById(r.dataset.layer).scrollIntoView({behavior:'smooth'});
+  });
+});
+
+// ---------- reveal on scroll ----------
+const revealObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){ entry.target.classList.add('in'); }
+  });
+}, {threshold:0.08});
+document.querySelectorAll('.reveal').forEach(el=> revealObserver.observe(el));
+
+// ---------- mobile progress bar ----------
+const progressBar = document.getElementById('mobileProgress');
+window.addEventListener('scroll', ()=>{
+  const h = document.documentElement;
+  const pct = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+  progressBar.style.width = pct + '%';
+});
+
+// ---------- mobile nav toggle ----------
+const navToggle = document.getElementById('navToggle');
+const navLinks = document.getElementById('navLinks');
+navToggle.addEventListener('click', ()=>{
+  const isOpen = navLinks.style.display === 'flex';
+  navLinks.style.display = isOpen ? 'none' : 'flex';
+  navLinks.style.cssText += isOpen ? '' : 'position:fixed; top:56px; left:0; right:0; background:#0a141fee; flex-direction:column; padding:20px 32px; gap:16px; border-bottom:1px solid var(--line);';
+});
+</script>
+</body>
+</html>
